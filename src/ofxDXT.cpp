@@ -60,29 +60,29 @@ static void extractBlock(const unsigned char *src, int x, int y, int w, int h, u
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool ofxDXT::compressRgbaPixelsToData(const ofPixels & rgba8Src, ofxDXT::Data & dst){
+bool ofxDXT::compressRgbaPixels(const ofPixels & rgba8Src, ofxDXT::Data & dst){
 
 	int channels = rgba8Src.getNumChannels();
 	if (channels != 4){
-		ofLogError("ofxDXT") << "Can't compressRgbaPixelsToData()! src pixels must be RGBA8.";
+		ofLogError("ofxDXT") << "Can't compressRgbaPixels()! src pixels must be RGBA8.";
 		return false;
 	}
-	return compressPixelsToDataInternal(rgba8Src, true, dst);
+	return compressPixelsInternal(rgba8Src, true, dst);
 }
 
 
-bool ofxDXT::compressRgbPixelsToData(const ofPixels & rgb8Src, ofxDXT::Data & dst){
+bool ofxDXT::compressRgbPixels(const ofPixels & rgb8Src, ofxDXT::Data & dst){
 
 	int channels = rgb8Src.getNumChannels();
 	if (channels != 3){
-		ofLogError("ofxDXT") << "Can't compressRgbPixelsToData()! src pixels must be RGB8.";
+		ofLogError("ofxDXT") << "Can't compressRgbPixels()! src pixels must be RGB8.";
 		return false;
 	}
-	return compressPixelsToDataInternal(rgb8Src, false, dst);
+	return compressPixelsInternal(rgb8Src, false, dst);
 }
 
 
-bool ofxDXT::compressPixelsToDataInternal(const ofPixels & src, bool isRgba, ofxDXT::Data & dst){
+bool ofxDXT::compressPixelsInternal(const ofPixels & src, bool isRgba, ofxDXT::Data & dst){
 
 	unsigned char block[64];
 	int x, y;

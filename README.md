@@ -18,7 +18,7 @@ This addon also allows you to save the compressed data to disk, and load it back
 	ofxDXT::Data compressedPix;
 
 	//compress RGBA pixels into DXT data
-	ofxDXT::compressRgbaPixelsToData(pix, compressedPix);
+	ofxDXT::compressRgbaPixels(pix, compressedPix);
 
 	ofTexture compressedTexture;
 	//load this data into an ofTexture - this sets the right internal GL types
@@ -35,6 +35,15 @@ See these changes [here](https://github.com/local-projects/openFrameworks/commit
 Basically, you need to use `glCompressedTexImage2D()` instead of `glTexImage2D()` to allocate the compressed DXT texture data, and `glCompressedTexSubImage2D()` instead of `glTexSubImage2D()`. Some other arguments need to be changed as well, so this changes handles that.
 
 These changes will only apply when an ofTexture's `glInternalFormat` is set to `GL_COMPRESSED_RGB_S3TC_DXT*_EXT`, so it should not affect its normal usage.
+
+## Notes
+
+DXT textures come with some constrains. They need to be `GL_TEXTURE_2D` (which the addon takes care of), and their sizes (width and height) need to be multiple of 4.  
+
+This is because the compression algorithm works on 4-pixel blocks. 
+If you supply pixels that don't follow this constrain, the addon will "grow" your texture by up to 3 pixels in each dimension to comply. Those pixels will be transparent.  
+
+You can always find out the size of the texture after compression by querying the `ofxDXT::Data` with getWidth() and getHeight();
 
 ## License
 ofxDXT has been created by Oriol Ferrer Mesià and released under [MIT](http://www.opensource.org/licenses/mit-license.php) license.

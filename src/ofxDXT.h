@@ -37,8 +37,8 @@ public:
 	//if src pixels width & hight are not multiple of 4, they will be expanded
 	//with transparent pixels to be
 
-	static bool compressRgbaPixelsToData(const ofPixels & rgba8Src, ofxDXT::Data & dst); //src pixels must be RGBA 8bpp
-	static bool compressRgbPixelsToData(const ofPixels & rgb8Src, ofxDXT::Data & dst); //src pixels must be RGB 8bpp
+	static bool compressRgbaPixels(const ofPixels & rgba8Src, ofxDXT::Data & dst); //src pixels must be RGBA 8bpp
+	static bool compressRgbPixels(const ofPixels & rgb8Src, ofxDXT::Data & dst); //src pixels must be RGB 8bpp
 
 	static void saveDDS(ofxDXT::Data & data, const string & path);
 	static void loadDDS(const string & path, ofxDXT::Data & data);
@@ -47,7 +47,7 @@ public:
 
 protected:
 
-	static bool compressPixelsToDataInternal(const ofPixels & src, bool isRgba, ofxDXT::Data & dst);
+	static bool compressPixelsInternal(const ofPixels & src, bool isRgba, ofxDXT::Data & dst);
 
 	//DXT FILE HEADER - total header size : 4 + 2 + 2 + 1 = 9 bytes
 	// "DXT" : 3bytes CONSTANT

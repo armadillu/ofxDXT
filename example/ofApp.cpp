@@ -25,7 +25,7 @@ void ofApp::setup(){
 	ofxDXT::Data compressedPix;
 
 	//compress RGBA pixels into DXT data
-	ofxDXT::compressRgbaPixelsToData(pix, compressedPix);
+	ofxDXT::compressRgbaPixels(pix, compressedPix);
 
 	//save these DXT compressed pixels to disk
 	ofxDXT::saveDDS(compressedPix, "test.dxt");
