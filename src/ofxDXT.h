@@ -41,7 +41,7 @@ public:
 	static bool compressRgbPixels(const ofPixels & rgb8Src, ofxDXT::Data & dst); //src pixels must be RGB 8bpp
 
 	static void saveToDisk(ofxDXT::Data & data, const string & path);
-	static void loadFromDisk(const string & path, ofxDXT::Data & data);
+	static bool loadFromDisk(const string & path, ofxDXT::Data & data);
 
 	static void loadDataIntoTexture(const ofxDXT::Data & data, ofTexture & texture);
 

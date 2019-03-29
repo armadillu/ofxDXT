@@ -153,7 +153,7 @@ void ofxDXT::saveToDisk(ofxDXT::Data & data, const string & path){
 }
 
 
-void ofxDXT::loadFromDisk(const string & path, ofxDXT::Data & data){
+bool ofxDXT::loadFromDisk(const string & path, ofxDXT::Data & data){
 
 	string fullPath = ofToDataPath(path, true);
 
@@ -164,7 +164,7 @@ void ofxDXT::loadFromDisk(const string & path, ofxDXT::Data & data){
 
     if(fileSize < sizeof(DxtHeader)){
     		ofLogError() << "Not a valid DXT file! \"" << path << "\"";
-    		return;
+    		return false;
 	}
 
 	auto myfile = std::fstream(fullPath, std::ios::in | std::ios::binary);
@@ -184,6 +184,8 @@ void ofxDXT::loadFromDisk(const string & path, ofxDXT::Data & data){
 	myfile.read((char*)data.getData(), dataSize);
 	data.setSize(head.width, head.height);
 	data.setCompressionType(ofxDXT::CompressionType(dxtType));
+
+	return true;
 }
 
 
