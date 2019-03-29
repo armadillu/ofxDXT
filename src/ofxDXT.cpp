@@ -132,7 +132,7 @@ bool ofxDXT::compressPixelsInternal(const ofPixels & src, bool isRgba, ofxDXT::D
 }
 
 
-void ofxDXT::saveDDS(ofxDXT::Data & data, const string & path){
+void ofxDXT::saveToDisk(ofxDXT::Data & data, const string & path){
 
 	string fullPath = ofToDataPath(path, true);
 	auto myfile = std::fstream(fullPath, std::ios::out | std::ios::binary);
@@ -153,7 +153,7 @@ void ofxDXT::saveDDS(ofxDXT::Data & data, const string & path){
 }
 
 
-void ofxDXT::loadDDS(const string & path, ofxDXT::Data & data){
+void ofxDXT::loadFromDisk(const string & path, ofxDXT::Data & data){
 
 	string fullPath = ofToDataPath(path, true);
 
