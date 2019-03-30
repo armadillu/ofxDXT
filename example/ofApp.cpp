@@ -40,6 +40,12 @@ void ofApp::setup(){
 
 
 void ofApp::update(){
+
+	//retrieve them back from disk into DXT compressed data
+	ofxDXT::Data compressedPix2;
+	ofxDXT::loadFromDisk("test.dxt", compressedPix2);
+	//load this data into an ofTexture - this sets the right internal GL types
+	ofxDXT::loadDataIntoTexture(compressedPix2, compressedTex);
 }
 
 

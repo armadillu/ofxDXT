@@ -28,6 +28,8 @@ public:
 			CompressionType getCompressionType() const {return type;};
 			void setCompressionType(CompressionType t){type = t;}
 
+			void clear(){ ofBuffer::clear(); width = height = 0;};
+
 		protected:
 			int width = 0;
 			int height = 0;

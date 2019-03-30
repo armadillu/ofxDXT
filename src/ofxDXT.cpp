@@ -185,7 +185,6 @@ bool ofxDXT::loadFromDisk(const string & path, ofxDXT::Data & data){
 	myfile.read((char*)data.getData(), dataSize);
 	data.setSize(head.width, head.height);
 	data.setCompressionType(ofxDXT::CompressionType(dxtType));
-
 	return true;
 }
 
