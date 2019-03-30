@@ -102,6 +102,7 @@ bool ofxDXT::compressPixelsInternal(const ofPixels & src, bool isRgba, ofxDXT::D
 		int h = ceil(src.getHeight()/4.0f) * 4;
 		ofLogNotice("ofxDXT") << "New pixels size is [" << w << " x " << h << "]";
 		pixGrow.allocate(w, h, isRgba ? 4 : 3); //rgb | rgba
+		memset(pixGrow.getData(), 0, pixGrow.getTotalBytes()); //zero out all data RGBA[0000]
 		src.pasteInto(pixGrow, 0, 0);
 		srcPix = &pixGrow;
 	}
