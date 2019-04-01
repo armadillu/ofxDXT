@@ -178,7 +178,7 @@ bool ofxDXT::loadFromDisk(const string & path, ofxDXT::Data & data){
 		case '1': dataSize = head.width *  head.height / 2; dxtType = 1; break;
 		case '3': dataSize = head.width *  head.height; dxtType = 3; break;
 		case '5': dataSize = head.width *  head.height; dxtType = 5; break;
-		default: ofLogError() << "Not a valid DXT file! \"" << path << "\""; return;
+		default: ofLogError() << "Not a valid DXT file! \"" << path << "\""; return false;
 	}
 
 	data.allocate(dataSize);

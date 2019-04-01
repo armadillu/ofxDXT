@@ -64,8 +64,8 @@ protected:
 	struct DxtHeader{
 		char compressionType[3] = {'D', 'X', 'T'};
 		unsigned char type = '1';
-		uint16 width = 0;
-		uint16 height = 0;
+		uint16_t width = 0;
+		uint16_t height = 0;
 		unsigned char pipe = '|';
 	};
 };
