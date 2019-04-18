@@ -78,7 +78,9 @@ bool ofxDXT::compressRgbPixels(const ofPixels & rgb8Src, ofxDXT::Data & dst){
 		ofLogError("ofxDXT") << "Can't compressRgbPixels()! src pixels must be RGB8.";
 		return false;
 	}
-	return compressPixelsInternal(rgb8Src, false, dst);
+	ofPixels rgba = rgb8Src;
+	rgba.setImageType(OF_IMAGE_COLOR_ALPHA);
+	return compressPixelsInternal(rgba, false, dst);
 }
 
 
@@ -95,8 +97,11 @@ bool ofxDXT::compressPixelsInternal(const ofPixels & src, bool isRgba, ofxDXT::D
 	ofPixels pixGrow;
 	ofPixels * srcPix = (ofPixels *)&src;
 
-	if(src.getWidth()%4 != 0 || src.getHeight()%4 != 0){
-		ofLogNotice("ofxDXT") << "Image size not multiple of 4 [" << src.getWidth() << " x " << src.getHeight() << "]! We need to resize!";
+	int w = srcPix->getWidth();
+	int h = srcPix->getHeight();
+
+	if(w%4 != 0 || h%4 != 0){
+		ofLogNotice("ofxDXT") << "Image size not multiple of 4 [" << w << " x " << h << "]! We need to resize!";
 		//lets expand to a multiple of 4 size
 		int w = ceil(src.getWidth()/4.0f) * 4;
 		int h = ceil(src.getHeight()/4.0f) * 4;
@@ -107,8 +112,6 @@ bool ofxDXT::compressPixelsInternal(const ofPixels & src, bool isRgba, ofxDXT::D
 		srcPix = &pixGrow;
 	}
 
-	int w = srcPix->getWidth();
-	int h = srcPix->getHeight();
 
 	//alloc for the compressed pixels,
 	if(isRgba){

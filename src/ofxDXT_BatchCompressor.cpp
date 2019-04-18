@@ -39,7 +39,7 @@ string ofxDXT_BatchCompressor::getStatus(){
 }
 
 
-void ofxDXT_BatchCompressor::compressWholeFolder(const string & path, const string & extension, int numThreads){
+void ofxDXT_BatchCompressor::compressWholeFolder(const string & path, const string & extension, bool useAlpha, int numThreads){
 
 	if(state == IDLE){
 
@@ -47,12 +47,14 @@ void ofxDXT_BatchCompressor::compressWholeFolder(const string & path, const stri
 		filesToCompress.clear();
 		compressedFiles.clear();
 		this->numThreads = numThreads;
+		this->useAlpha = useAlpha;
 
 		auto fileNames = ofxDXT_BatchCompressor::getImagesAtDirectory(path, extension);
 		for(auto & fn : fileNames){
 			filesToCompress.push_back(path + "/" + fn);
 		}
 
+		allFiles = filesToCompress;
 	}else{
 		ofLogError("ofxDXT_BatchCompressor") << "busy! can't compressWholeFolder() now";
 	}
@@ -63,7 +65,7 @@ void ofxDXT_BatchCompressor::update(){
 
 	if(state == COMPRESSING){
 
-		if (filesToCompress.size() == compressedFiles.size() ){ //done
+		if (allFiles.size() == compressedFiles.size() ){ //done
 			ofLogNotice("ofxDXT_BatchCompressor") << "done compressing images!";
 			state = IDLE;
 			bool ok = true;

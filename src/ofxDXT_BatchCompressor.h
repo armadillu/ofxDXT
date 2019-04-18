@@ -21,7 +21,7 @@ public:
 	string getStatus();
 
 	//expects a folder full of images, will create one dxt compressed frame for each of them
-	void compressWholeFolder(const string & path, const string & extension, int numThreads);
+	void compressWholeFolder(const string & path, const string & extension, bool useAlpha, int numThreads);
 	bool isBusy(){return state == COMPRESSING;}
 
 	ofEvent<bool> eventFinished;
@@ -43,7 +43,9 @@ protected:
 
 	State state = IDLE;
 	int numThreads = 1;
+	bool useAlpha;
 
+	vector<string> allFiles;
 	vector<string> filesToCompress;
 	vector<string> compressedFiles;
 

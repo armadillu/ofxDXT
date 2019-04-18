@@ -68,4 +68,8 @@ protected:
 		uint16_t height = 0;
 		unsigned char pipe = '|';
 	};
+
+	static void extractBlockRGB(const unsigned char *src, int x, int y, int w, int h, unsigned char *block);
+	static void extractBlockRGBA(const unsigned char *src, int x, int y, int w, int h, unsigned char *block);
+
 };
