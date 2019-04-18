@@ -97,8 +97,8 @@ bool ofxDXT::compressPixelsInternal(const ofPixels & src, bool isRgba, ofxDXT::D
 	ofPixels pixGrow;
 	ofPixels * srcPix = (ofPixels *)&src;
 
-	int w = srcPix->getWidth();
-	int h = srcPix->getHeight();
+	std::size_t w = srcPix->getWidth();
+	std::size_t h = srcPix->getHeight();
 
 	if(w%4 != 0 || h%4 != 0){
 		ofLogNotice("ofxDXT") << "Image size not multiple of 4 [" << w << " x " << h << "]! We need to resize!";
@@ -106,7 +106,7 @@ bool ofxDXT::compressPixelsInternal(const ofPixels & src, bool isRgba, ofxDXT::D
 		int w = ceil(src.getWidth()/4.0f) * 4;
 		int h = ceil(src.getHeight()/4.0f) * 4;
 		ofLogNotice("ofxDXT") << "New pixels size is [" << w << " x " << h << "]";
-		pixGrow.allocate(w, h, isRgba ? 4 : 3); //rgb | rgba
+		pixGrow.allocate(w, h, 4);
 		memset(pixGrow.getData(), 0, pixGrow.getTotalBytes()); //zero out all data RGBA[0000]
 		src.pasteInto(pixGrow, 0, 0);
 		srcPix = &pixGrow;
@@ -117,7 +117,9 @@ bool ofxDXT::compressPixelsInternal(const ofPixels & src, bool isRgba, ofxDXT::D
 	if(isRgba){
 		dst.allocate(w * h); //we know this will be 1/4 the size of the png pixels count, DXT5 compresses at 4:1 ratio
 	}else{
-		dst.allocate(w * h / 2); //we know this will be 1/8 the size of the png pixels count, DXT1 compresses at 8:1 ratio
+		//we drop the alpha entirely
+		//we know this will be 1/8 the size of the png pixels count, DXT1 compresses at 8:1 ratio
+		dst.allocate( std::size_t(w * h) / std::size_t(2) );
 	}
 	dst.setSize(w, h); //in pixels (real texture pixel size, not data size)
 	dst.setCompressionType(isRgba ? ofxDXT::DXT5 : ofxDXT::DXT1);
@@ -125,10 +127,11 @@ bool ofxDXT::compressPixelsInternal(const ofPixels & src, bool isRgba, ofxDXT::D
 	const unsigned char * srcData = (const unsigned char *)srcPix->getData();
 	unsigned char * dstData = (unsigned char *)dst.getData();
 
+	int isAlpha = isRgba ? 1 : 0;
 	for(y = 0; y < h; y += 4){
 		for(x = 0; x < w; x += 4){
 			extractBlock(srcData, x, y, w, h, block);
-			stb_compress_dxt_block(dstData, block, isRgba ? 1 : 0, STB_DXT_HIGHQUAL);
+			stb_compress_dxt_block(dstData, block, isAlpha, STB_DXT_HIGHQUAL);
 			dstData += isRgba ? 16 : 8; //advance pointer to next block
 		}
 	}
@@ -178,9 +181,9 @@ bool ofxDXT::loadFromDisk(const string & path, ofxDXT::Data & data){
 	size_t dataSize;
 	int dxtType = 0;
 	switch (head.type) {
-		case '1': dataSize = head.width *  head.height / 2; dxtType = 1; break;
-		case '3': dataSize = head.width *  head.height; dxtType = 3; break;
-		case '5': dataSize = head.width *  head.height; dxtType = 5; break;
+		case '1': dataSize = std::size_t(head.width) * std::size_t(head.height) / std::size_t(2); dxtType = 1; break; //8:1
+		case '3': dataSize = head.width * head.height; dxtType = 3; break;
+		case '5': dataSize = head.width * head.height; dxtType = 5; break;
 		default: ofLogError() << "Not a valid DXT file! \"" << path << "\""; return false;
 	}
 
@@ -194,7 +197,7 @@ bool ofxDXT::loadFromDisk(const string & path, ofxDXT::Data & data){
 
 GLint ofxDXT::getGlTypeForCompression(ofxDXT::CompressionType t){
 	switch (t) {
-		case ofxDXT::DXT1: return GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+		case ofxDXT::DXT1: return GL_COMPRESSED_RGB_S3TC_DXT1_EXT;
 		case ofxDXT::DXT3: return GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
 		case ofxDXT::DXT5: return GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
 		default:
@@ -206,8 +209,9 @@ GLint ofxDXT::getGlTypeForCompression(ofxDXT::CompressionType t){
 
 void ofxDXT::loadDataIntoTexture(const ofxDXT::Data & data, ofTexture & texture){
 	GLint glCompressionType = ofxDXT::getGlTypeForCompression(data.getCompressionType());
+	GLint type = data.getCompressionType() == ofxDXT::DXT1 ? GL_RGB8 : GL_RGBA8;
 	//allocate texture with DXT5 internals
-	texture.allocate(data.getWidth(), data.getHeight(), glCompressionType, false /*force GL_TEXTURE_2D*/, GL_RGBA8, GL_UNSIGNED_BYTE);
+	texture.allocate(data.getWidth(), data.getHeight(), glCompressionType, false /*force GL_TEXTURE_2D*/, type, GL_UNSIGNED_BYTE);
 	//load texture from a PNG compressed on-the-fly to DDS (rygCompress)
 	texture.loadData((unsigned char *)data.getData(), data.getWidth(), data.getHeight(), glCompressionType);
 }
