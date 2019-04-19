@@ -112,6 +112,8 @@ bool ofxDXT::compressPixelsInternal(const ofPixels & src, bool isRgba, ofxDXT::D
 		srcPix = &pixGrow;
 	}
 
+	w = srcPix->getWidth();
+	h = srcPix->getHeight();
 
 	//alloc for the compressed pixels,
 	if(isRgba){
