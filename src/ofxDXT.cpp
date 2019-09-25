@@ -9,7 +9,7 @@
 #include "ofxDXT.h"
 
 #define STB_DXT_IMPLEMENTATION
-#include "../lib/stb/stb_dxt.h"
+#include "../libs/stb/stb_dxt.h"
 #undef STB_DXT_IMPLEMENTATION
 
 #include <sys/stat.h>
