@@ -8,11 +8,9 @@
 
 #include "ofxDXT.h"
 
-//commenting this out to avoid duploicate symobl errors with other addons that also use stb_image.
-//if no other addon is including stb_image and you intend to use ofxDXT, you may need to add this to your project to include the stb_image implementation.
-//#define STB_IMAGE_IMPLEMENTATION
-//#include "../lib/stb/stb_image.h"
-//#undef STB_DXT_IMPLEMENTATION
+#define STB_DXT_IMPLEMENTATION
+#include "../lib/stb/stb_dxt.h"
+#undef STB_DXT_IMPLEMENTATION
 
 #include <sys/stat.h>
 
