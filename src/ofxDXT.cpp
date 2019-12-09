@@ -213,7 +213,16 @@ void ofxDXT::loadDataIntoTexture(const ofxDXT::Data & data, ofTexture & texture)
 	GLint glCompressionType = ofxDXT::getGlTypeForCompression(data.getCompressionType());
 	GLint type = data.getCompressionType() == ofxDXT::DXT1 ? GL_RGB8 : GL_RGBA8;
 	//allocate texture with DXT5 internals
-	texture.allocate(data.getWidth(), data.getHeight(), glCompressionType, false /*force GL_TEXTURE_2D*/, type, GL_UNSIGNED_BYTE);
-	//load texture from a PNG compressed on-the-fly to DDS (rygCompress)
+	bool allocated = texture.isAllocated();
+	bool sizeMismatch = true;
+	bool typeMismatch = true;
+	if(allocated){
+		auto & texData = texture.getTextureData();
+		sizeMismatch = (int)texData.width == 0 || (int)texData.height == 0 || (int)data.getWidth() != (int)texData.width || (int)data.getHeight() != (int)texData.height;
+		typeMismatch = texData.glInternalFormat != glCompressionType;
+	}
+	if(!allocated || sizeMismatch || typeMismatch){
+		texture.allocate(data.getWidth(), data.getHeight(), glCompressionType, false /*force GL_TEXTURE_2D*/, type, GL_UNSIGNED_BYTE);
+	}
 	texture.loadData((unsigned char *)data.getData(), data.getWidth(), data.getHeight(), glCompressionType);
 }
