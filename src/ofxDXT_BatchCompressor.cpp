@@ -32,7 +32,7 @@ ofxDXT_BatchCompressor::ofxDXT_BatchCompressor(){
 
 
 string ofxDXT_BatchCompressor::getStatus(){
-	string msg = "State: " + string(state == IDLE ? "IDLE" : "COMPRESSING") + "\n";
+	string msg = "State: " + string(state == IDLE ? "IDLE" : "COMPRESSING DXT") + "\n";
 	msg += ofToString(compressedFiles.size()) + "/" + ofToString(filesToCompress.size() + compressedFiles.size() + tasks.size()) + " [" + ofToString(tasks.size()) + " active tasks]";
 	msg += "\n";
 	return msg;
