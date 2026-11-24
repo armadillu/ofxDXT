@@ -13,50 +13,7 @@
 #undef STB_DXT_IMPLEMENTATION
 
 #include <sys/stat.h>
-
-static int imin(int x, int y) { return (x < y) ? x : y; }
-
-static void extractBlock(const unsigned char *src, int x, int y, int w, int h, unsigned char *block){
-
-	int i, j;
-	if ((w-x >=4) && (h-y >=4)){
-
-		src += x*4;
-		src += y*w*4;
-		for (i=0; i < 4; ++i)
-		{
-			*(unsigned int*)block = *(unsigned int*) src; block += 4; src += 4;
-			*(unsigned int*)block = *(unsigned int*) src; block += 4; src += 4;
-			*(unsigned int*)block = *(unsigned int*) src; block += 4; src += 4;
-			*(unsigned int*)block = *(unsigned int*) src; block += 4;
-			src += (w*4) - 12;
-		}
-		return;
-	}
-
-	int bw = imin(w - x, 4);
-	int bh = imin(h - y, 4);
-	int bx, by;
-
-	const int rem[] =
-	{
-		0, 0, 0, 0,
-		0, 1, 0, 1,
-		0, 1, 2, 0,
-		0, 1, 2, 3
-	};
-
-	for(i = 0; i < 4; ++i){
-		by = rem[(bh - 1) * 4 + i] + y;
-		for(j = 0; j < 4; ++j){
-			bx = rem[(bw - 1) * 4 + j] + x;
-			block[(i * 4 * 4) + (j * 4) + 0] = src[(by * (w * 4)) + (bx * 4) + 0];
-			block[(i * 4 * 4) + (j * 4) + 1] = src[(by * (w * 4)) + (bx * 4) + 1];
-			block[(i * 4 * 4) + (j * 4) + 2] = src[(by * (w * 4)) + (bx * 4) + 2];
-			block[(i * 4 * 4) + (j * 4) + 3] = src[(by * (w * 4)) + (bx * 4) + 3];
-		}
-	}
-}
+#include <cstring>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -78,9 +35,7 @@ bool ofxDXT::compressRgbPixels(const ofPixels & rgb8Src, ofxDXT::Data & dst){
 		ofLogError("ofxDXT") << "Can't compressRgbPixels()! src pixels must be RGB8.";
 		return false;
 	}
-	ofPixels rgba = rgb8Src;
-	rgba.setImageType(OF_IMAGE_COLOR_ALPHA);
-	return compressPixelsInternal(rgba, false, dst);
+	return compressPixelsInternal(rgb8Src, false, dst);
 }
 
 
@@ -94,11 +49,12 @@ bool ofxDXT::compressPixelsInternal(const ofPixels & src, bool isRgba, ofxDXT::D
 		return false;
 	}
 
-	ofPixels pixGrow;
-	ofPixels * srcPix = (ofPixels *)&src;
-
-	std::size_t w = srcPix->getWidth();
-	std::size_t h = srcPix->getHeight();
+	std::size_t w = src.getWidth();
+	std::size_t h = src.getHeight();
+	if(w > 65532 || h > 65532){
+		ofLogError("ofxDXT") << "Image dimensions exceed the DXT file format limit.";
+		return false;
+	}
 
 	if(w%4 != 0 || h%4 != 0){
 		ofLogNotice("ofxDXT") << "Image size not multiple of 4 [" << w << " x " << h << "]! We need to resize!";
@@ -106,14 +62,9 @@ bool ofxDXT::compressPixelsInternal(const ofPixels & src, bool isRgba, ofxDXT::D
 		int w = ceil(src.getWidth()/4.0f) * 4;
 		int h = ceil(src.getHeight()/4.0f) * 4;
 		ofLogNotice("ofxDXT") << "New pixels size is [" << w << " x " << h << "]";
-		pixGrow.allocate(w, h, 4);
-		memset(pixGrow.getData(), 0, pixGrow.getTotalBytes()); //zero out all data RGBA[0000]
-		src.pasteInto(pixGrow, 0, 0);
-		srcPix = &pixGrow;
 	}
-
-	w = srcPix->getWidth();
-	h = srcPix->getHeight();
+	w = (w + 3) & ~std::size_t(3);
+	h = (h + 3) & ~std::size_t(3);
 
 	//alloc for the compressed pixels,
 	if(isRgba){
@@ -126,13 +77,25 @@ bool ofxDXT::compressPixelsInternal(const ofPixels & src, bool isRgba, ofxDXT::D
 	dst.setSize(w, h); //in pixels (real texture pixel size, not data size)
 	dst.setCompressionType(isRgba ? ofxDXT::DXT5 : ofxDXT::DXT1);
 
-	const unsigned char * srcData = (const unsigned char *)srcPix->getData();
+	const unsigned char * srcData = src.getData();
 	unsigned char * dstData = (unsigned char *)dst.getData();
 
 	int isAlpha = isRgba ? 1 : 0;
 	for(y = 0; y < h; y += 4){
 		for(x = 0; x < w; x += 4){
-			extractBlock(srcData, x, y, w, h, block);
+			if(isRgba && x + 4 <= src.getWidth() && y + 4 <= src.getHeight()){
+				for(int row = 0; row < 4; ++row){
+					std::memcpy(block + row * 16, srcData + ((y + row) * src.getWidth() + x) * 4, 16);
+				}
+			}else{
+				std::memset(block, 0, sizeof(block));
+				const int channels = isRgba ? 4 : 3;
+				for(int row = 0; row < 4 && y + row < src.getHeight(); ++row){
+					for(int col = 0; col < 4 && x + col < src.getWidth(); ++col){
+						std::memcpy(block + (row * 4 + col) * 4, srcData + ((y + row) * src.getWidth() + x + col) * channels, channels);
+					}
+				}
+			}
 			stb_compress_dxt_block(dstData, block, isAlpha, STB_DXT_HIGHQUAL);
 			dstData += isRgba ? 16 : 8; //advance pointer to next block
 		}
@@ -141,24 +104,25 @@ bool ofxDXT::compressPixelsInternal(const ofPixels & src, bool isRgba, ofxDXT::D
 }
 
 
-void ofxDXT::saveToDisk(ofxDXT::Data & data, const string & path){
+bool ofxDXT::saveToDisk(const ofxDXT::Data & data, const string & path){
 
 	string fullPath = ofToDataPath(path, true);
-	auto myfile = std::fstream(fullPath, std::ios::out | std::ios::binary);
-
 	DxtHeader head;
 	switch (data.getCompressionType()) {
   		case ofxDXT::DXT1: head.type = '1'; break;
   		case ofxDXT::DXT3: head.type = '3'; break;
   		case ofxDXT::DXT5: head.type = '5'; break;
-  		default: ofLogError() << "invalid DXT type! (DXT" << data.getCompressionType() << ")"; return;
+		default: ofLogError() << "invalid DXT type! (DXT" << data.getCompressionType() << ")"; return false;
 	}
+	if(data.getWidth() <= 0 || data.getHeight() <= 0 || data.getWidth() > 65535 || data.getHeight() > 65535 || data.getWidth() % 4 || data.getHeight() % 4 || data.size() != std::size_t(data.getWidth()) * data.getHeight() / (data.getCompressionType() == DXT1 ? 2 : 1)) return false;
 	head.width = data.getWidth();
 	head.height = data.getHeight();
+	auto myfile = std::fstream(fullPath, std::ios::out | std::ios::binary);
 
-    myfile.write((const char*)&head.compressionType[0], sizeof(DxtHeader));
+    myfile.write((const char*)&head, sizeof(DxtHeader));
     myfile.write((const char*)data.getData(), data.size());
     myfile.close();
+    return bool(myfile);
 }
 
 
@@ -168,8 +132,9 @@ bool ofxDXT::loadFromDisk(const string & path, ofxDXT::Data & data){
 
 	//get file size
 	struct stat stat_buf;
-    size_t rc = stat(fullPath.c_str(), &stat_buf);
-    size_t fileSize = rc == 0 ? stat_buf.st_size : -1;
+    int rc = stat(fullPath.c_str(), &stat_buf);
+    if(rc != 0 || stat_buf.st_size < 0) return false;
+    size_t fileSize = static_cast<size_t>(stat_buf.st_size);
 
     if(fileSize < sizeof(DxtHeader)){
     		ofLogError() << "Not a valid DXT file! \"" << path << "\"";
@@ -179,20 +144,25 @@ bool ofxDXT::loadFromDisk(const string & path, ofxDXT::Data & data){
 	auto myfile = std::fstream(fullPath, std::ios::in | std::ios::binary);
 	DxtHeader head;
 
-	myfile.read((char*)&head.compressionType[0] , sizeof(DxtHeader));
+	myfile.read((char*)&head, sizeof(DxtHeader));
+	if(!myfile || std::memcmp(head.compressionType, "DXT", 3) != 0 || head.pipe != '|' || head.width == 0 || head.height == 0 || head.width % 4 || head.height % 4) return false;
 	size_t dataSize;
 	int dxtType = 0;
 	switch (head.type) {
 		case '1': dataSize = std::size_t(head.width) * std::size_t(head.height) / std::size_t(2); dxtType = 1; break; //8:1
-		case '3': dataSize = head.width * head.height; dxtType = 3; break;
-		case '5': dataSize = head.width * head.height; dxtType = 5; break;
+		case '3': dataSize = std::size_t(head.width) * head.height; dxtType = 3; break;
+		case '5': dataSize = std::size_t(head.width) * head.height; dxtType = 5; break;
 		default: ofLogError() << "Not a valid DXT file! \"" << path << "\""; return false;
 	}
 
-	data.allocate(dataSize);
-	myfile.read((char*)data.getData(), dataSize);
-	data.setSize(head.width, head.height);
-	data.setCompressionType(ofxDXT::CompressionType(dxtType));
+	if(fileSize != sizeof(DxtHeader) + dataSize) return false;
+	ofxDXT::Data loaded;
+	loaded.allocate(dataSize);
+	myfile.read((char*)loaded.getData(), dataSize);
+	if(!myfile) return false;
+	loaded.setSize(head.width, head.height);
+	loaded.setCompressionType(ofxDXT::CompressionType(dxtType));
+	data = std::move(loaded);
 	return true;
 }
 

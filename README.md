@@ -4,9 +4,11 @@ Compress ofPixels into DXT OpenGL textures. Texture compression can be very usef
 
 DXT offers a 4:1 compression ratio.
 
-This addon also allows you to save the compressed data to disk, and load it back. The format in which the data is not standard; usually you would save this data as a .DDS file, but I had to time to look into that, and I didnt really need it either. The file format itself is a 9 byte header followed by the raw data, which is great for realtime loading of textures.
+This addon also allows you to save the compressed data to disk, and load it back. The format is not standard; the file contains a native C++ header followed by the raw data. Header padding and byte order depend on the platform, so files are not necessarily portable between platforms.
 
 # How to Use
+
+The example shows a single PNG alongside its compressed texture, then compresses images in `data/images` and displays the results in a grid. The batch compressor writes `.dxt` files alongside the source images, replacing existing files with the same names. It uses alpha compression for the example.
 
 ```c++
 

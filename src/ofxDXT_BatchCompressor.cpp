@@ -19,14 +19,12 @@
 
 ofxDXT_BatchCompressor::ofxDXT_BatchCompressor(){
 
+}
+
+ofxDXT_BatchCompressor::~ofxDXT_BatchCompressor(){
+
 	//wait for all threads to end
-	for(int i = tasks.size() - 1; i >= 0; i--){
-		std::future_status status = tasks[i].wait_for(std::chrono::microseconds(0));
-		while(status != std::future_status::ready){
-			ofSleepMillis(16);
-			status = tasks[i].wait_for(std::chrono::microseconds(0));
-		}
-	}
+	for(auto & task : tasks) task.wait();
 
 }
 
@@ -46,15 +44,17 @@ void ofxDXT_BatchCompressor::compressWholeFolder(const string & path, const stri
 		state = COMPRESSING;
 		filesToCompress.clear();
 		compressedFiles.clear();
-		this->numThreads = numThreads;
+		this->numThreads = std::max(1, numThreads);
 		this->useAlpha = useAlpha;
+		allSucceeded = true;
 
 		auto fileNames = ofxDXT_BatchCompressor::getImagesAtDirectory(path, extension);
 		for(auto & fn : fileNames){
 			filesToCompress.push_back(path + "/" + fn);
 		}
+		std::reverse(filesToCompress.begin(), filesToCompress.end());
 
-		allFiles = filesToCompress;
+		totalFiles = filesToCompress.size();
 	}else{
 		ofLogError("ofxDXT_BatchCompressor") << "busy! can't compressWholeFolder() now";
 	}
@@ -65,10 +65,10 @@ void ofxDXT_BatchCompressor::update(){
 
 	if(state == COMPRESSING){
 
-		if (allFiles.size() == compressedFiles.size() ){ //done
+		if (totalFiles == compressedFiles.size() ){ //done
 			ofLogNotice("ofxDXT_BatchCompressor") << "done compressing images!";
 			state = IDLE;
-			bool ok = true;
+			bool ok = allSucceeded;
 			ofNotifyEvent(eventFinished, ok);
 
 		}else{
@@ -78,8 +78,15 @@ void ofxDXT_BatchCompressor::update(){
 				//see if thread is done, gather results and remove from vector
 				std::future_status status = tasks[i].wait_for(std::chrono::microseconds(0));
 				if(status == std::future_status::ready){ //thread is done
-					auto results = tasks[i].get();
-					compressedFiles.push_back(results.file);
+					try{
+						auto results = tasks[i].get();
+						allSucceeded = allSucceeded && results.done;
+						compressedFiles.push_back(std::move(results.file));
+					}catch(const std::exception & e){
+						ofLogError("ofxDXT_BatchCompressor") << e.what();
+						allSucceeded = false;
+						compressedFiles.emplace_back();
+					}
 					//checked[results.ID] = results; //store check results
 					tasks.erase(tasks.begin() + i);
 				}
@@ -87,9 +94,9 @@ void ofxDXT_BatchCompressor::update(){
 
 			//spawn new ones
 			while(tasks.size() < numThreads && filesToCompress.size()){ //spawn thread
-				string file = filesToCompress.front();
-				filesToCompress.erase(filesToCompress.begin());
-				tasks.push_back( std::async(std::launch::async, &ofxDXT_BatchCompressor::compressAsset, this, file ));
+				string file = std::move(filesToCompress.back());
+				filesToCompress.pop_back();
+				tasks.push_back( std::async(std::launch::async, &ofxDXT_BatchCompressor::compressAsset, this, std::move(file) ));
 			}
 		}
 	}
@@ -99,23 +106,27 @@ void ofxDXT_BatchCompressor::update(){
 ofxDXT_BatchCompressor::CompressInfo ofxDXT_BatchCompressor::compressAsset(string file){
 
 	ofxDXT_BatchCompressor::CompressInfo inf;
-	inf.file = file;
 	ofPixels pix;
-	ofLoadImage(pix, file);
+	if(!ofLoadImage(pix, file)){
+		inf.file = std::move(file);
+		return inf;
+	}
+	if(pix.getNumChannels() == 3 && useAlpha) pix.setImageType(OF_IMAGE_COLOR_ALPHA);
+	else if(pix.getNumChannels() == 4 && !useAlpha) pix.setImageType(OF_IMAGE_COLOR);
 	ofxDXT::Data compressedPix;
 
 	if(pix.getNumChannels() == 3){
-		ofxDXT::compressRgbPixels(pix, compressedPix);
+		inf.done = ofxDXT::compressRgbPixels(pix, compressedPix);
 	}else{
 		if(pix.getNumChannels() == 4){
-			ofxDXT::compressRgbaPixels(pix, compressedPix);
+			inf.done = ofxDXT::compressRgbaPixels(pix, compressedPix);
 		}else{
-			inf.done = false;
+			inf.file = std::move(file);
 			return inf;
 		}
 	}
-	ofxDXT::saveToDisk(compressedPix, file + ".dxt");
-	inf.done = true;
+	inf.done = inf.done && ofxDXT::saveToDisk(compressedPix, file + ".dxt");
+	inf.file = std::move(file);
 	return inf;
 }
 

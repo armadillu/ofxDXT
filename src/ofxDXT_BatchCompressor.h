@@ -16,6 +16,7 @@ public:
 
 
 	ofxDXT_BatchCompressor();
+	~ofxDXT_BatchCompressor();
 
 	void update();
 	string getStatus();
@@ -44,8 +45,9 @@ protected:
 	State state = IDLE;
 	int numThreads = 1;
 	bool useAlpha;
+	bool allSucceeded = true;
 
-	vector<string> allFiles;
+	std::size_t totalFiles = 0;
 	vector<string> filesToCompress;
 	vector<string> compressedFiles;
 

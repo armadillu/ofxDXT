@@ -33,7 +33,7 @@ public:
 		protected:
 			int width = 0;
 			int height = 0;
-			CompressionType type;
+			CompressionType type = DXT1;
 	};
 
 	//if src pixels width & hight are not multiple of 4, they will be expanded
@@ -42,7 +42,7 @@ public:
 	static bool compressRgbaPixels(const ofPixels & rgba8Src, ofxDXT::Data & dst); //src pixels must be RGBA 8bpp
 	static bool compressRgbPixels(const ofPixels & rgb8Src, ofxDXT::Data & dst); //src pixels must be RGB 8bpp
 
-	static void saveToDisk(ofxDXT::Data & data, const string & path);
+	static bool saveToDisk(const ofxDXT::Data & data, const string & path);
 	static bool loadFromDisk(const string & path, ofxDXT::Data & data);
 
 	static void loadDataIntoTexture(const ofxDXT::Data & data, ofTexture & texture);
@@ -51,11 +51,11 @@ protected:
 
 	static bool compressPixelsInternal(const ofPixels & src, bool isRgba, ofxDXT::Data & dst);
 
-	//DXT FILE HEADER - total header size : 4 + 2 + 2 + 1 = 9 bytes
+	//DXT FILE HEADER - written as a native DxtHeader, including any structure padding
 	// "DXT" : 3bytes CONSTANT
 	// type  : 1 byte char - with valid values '1' '3' or '5'
-	// width : 2bytes [0-65536]
-	// height: 2bytes [0-65536]
+	// width : 2bytes [0-65535]
+	// height: 2bytes [0-65535]
 	// "|"   : 1 byte CONSTANT
 	// data  : all the compressed data (data len calculated from width, height & DXT type)
 
@@ -68,8 +68,5 @@ protected:
 		uint16_t height = 0;
 		unsigned char pipe = '|';
 	};
-
-	static void extractBlockRGB(const unsigned char *src, int x, int y, int w, int h, unsigned char *block);
-	static void extractBlockRGBA(const unsigned char *src, int x, int y, int w, int h, unsigned char *block);
 
 };
